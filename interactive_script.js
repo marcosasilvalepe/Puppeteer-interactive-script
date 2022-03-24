@@ -11,7 +11,7 @@ const conn = mysql.createPool({
 const userInput = require('wait-for-user-input');
 const puppeteer = require('puppeteer');
 const puppeteerOptions = { headless: false /*** default is true ***/ /*, args: ['--proxy-server=127.0.0.1:24000']*/ }
-const main_url = "hidden_url"; //CLIENT CONFIDENTIAL URL
+const main_url = "https://youniverse.ro/";
 
 /*************************************** GENERAL FUNCTIONS *************************************/
 const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
@@ -258,6 +258,12 @@ const createAccount = phone_number => {
             console.log('Terms accepted');
 
             //WAIT FOR LOADER TO BE HIDDEN
+            await wait_for_loader();
+            await iframe.evaluate(() => {
+                if (!!document.querySelector('a.btn-login[href="#/login"]'))
+                    document.querySelector('a.btn-login[href="#/login"]').click();
+            });
+            //await iframe.click('a.btn-login[href="#/login"]');
             await wait_for_loader();
 
             //LOGIN DATA -> USER
@@ -593,6 +599,12 @@ const logInAfterCreatingAccount = new_user => {
             console.log('Terms accepted');
     
             //WAIT FOR LOADER TO BE HIDDEN
+            await wait_for_loader();
+            await iframe.evaluate(() => {
+                if (!!document.querySelector('a.btn-login[href="#/login"]'))
+                    document.querySelector('a.btn-login[href="#/login"]').click();
+            });
+            //await iframe.click('a.btn-login[href="#/login"]');
             await wait_for_loader();
     
             //LOGIN DATA -> USER
@@ -959,6 +971,12 @@ const loginUsers = users => {
     
                 //WAIT FOR LOADER TO BE HIDDEN
                 await wait_for_loader();
+                await iframe.evaluate(() => {
+                    if (!!document.querySelector('a.btn-login[href="#/login"]'))
+                        document.querySelector('a.btn-login[href="#/login"]').click();
+                });
+                //await iframe.click('a.btn-login[href="#/login"]');
+                await wait_for_loader();
 
                 //LOGIN DATA -> USER
                 await iframe.waitForSelector('#input-login-telefon');
@@ -966,6 +984,7 @@ const loginUsers = users => {
                 await iframe.focus('#input-login-telefon');
                 await page.keyboard.type(user.user);
                 await delay(500);
+                await wait_for_loader();
                 await iframe.click('button.btn-login[ng-click="checkPhone()"]');
                 console.log('User entered correctly');
     
@@ -1261,6 +1280,23 @@ const checkAccountToDeactivate = id => {
     })
 }
 
+const getUserFromDb = id => {
+    return new Promise((resolve, reject) => {
+        conn.query(`
+            SELECT * FROM users WHERE id=${parseInt(id)};
+        `, (error, results, fields) => {
+            if (error || results.length === 0) return reject(error);
+            return resolve({
+                id: results[0].id,
+                name: results[0].name,
+                surname: results[0].surname,
+                user: results[0].user,
+                password: results[0].password 
+            })
+        })
+    })
+}
+
 const deactivateExpiredAccount = id => {
     return new Promise((resolve, reject) => {
         conn.query(`
@@ -1269,6 +1305,193 @@ const deactivateExpiredAccount = id => {
             if (error) return reject(error);
             return resolve();
         })
+    })
+}
+
+const deactivateAccount = user => {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            const browser = await puppeteer.launch(puppeteerOptions); // default is true
+            const page = await browser.newPage();
+            page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Safari/537.36');
+
+            console.log(`Loading main site for user: `, user);
+            await page.goto(main_url, { waitUntil: 'networkidle0', timeout: 60000 });
+            
+            const frameHandle = await page.waitForSelector('iframe.login__iframe');
+            const iframe = await frameHandle.contentFrame();
+            console.log('iframe loaded');
+
+            //ACCEPT COOKIES
+            await page.waitForSelector('form.form-cookie.ng-untouched div.cta > button:last-child');
+            await page.click('form.form-cookie.ng-untouched div.cta > button:last-child');
+            console.log('Cookies accepted');
+
+            await delay(2500);
+
+            const wait_for_loader = async () => {
+                await new Promise(async (resolve1, reject) => {
+                    try {
+                        await iframe.evaluate(async () => {
+                            await new Promise(async resolve2 => {
+                                const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
+                                const wait_for_loader = () => {
+                                    return new Promise(async resolve3 => {
+                                        const loader = document.querySelector('.component--preloader--youniverse_new.component--preloader');
+                                        while (!loader.classList.contains('ng-hide')) { await delay(20); }
+                                        console.log('finished waiting!!!') 
+                                        return resolve3();
+                                    })
+                                }
+                                await wait_for_loader();
+                                return resolve2();
+                            })
+                        });
+                        return resolve1();
+                    } catch(error) { return reject(error) }
+                })
+            }
+
+            //WAIT FOR LOADER TO BE HIDDEN
+            await iframe.waitForSelector('.component--preloader--youniverse_new.component--preloader');
+            await wait_for_loader();
+
+            //CLICK ON ROMANIA
+            await iframe.waitForSelector(`div.form-login .ctas a.btn-login.btn-auth[ng-click="selectCountry('ro')"]`);
+            await delay(500);
+            await iframe.click(`div.form-login .ctas a.btn-login.btn-auth[ng-click="selectCountry('ro')"]`);
+            console.log('Clicked on Romania');
+
+            //WAIT FOR LOADER TO BE HIDDEN
+            await wait_for_loader();
+            
+            //ACCEPT TERMS
+            await iframe.waitForSelector(`.ng-scope .lg-wrapper.disclaimer-wrapper.ng-scope .submit-container > a.btn-login[href="#/login"]`);
+            await delay(500);
+            await iframe.click(`.ng-scope .lg-wrapper.disclaimer-wrapper.ng-scope .submit-container > a.btn-login[href="#/login"]`);
+            console.log('Terms accepted');
+
+            //WAIT FOR LOADER TO BE HIDDEN
+            await wait_for_loader();
+            await iframe.evaluate(() => {
+                if (!!document.querySelector('a.btn-login[href="#/login"]'))
+                    document.querySelector('a.btn-login[href="#/login"]').click();
+            });
+            //await iframe.click('a.btn-login[href="#/login"]');
+            await wait_for_loader();
+
+            //LOGIN DATA -> USER
+            await iframe.waitForSelector('#input-login-telefon');
+            await iframe.waitForSelector('button.btn-login[ng-click="checkPhone()"]');
+            await iframe.focus('#input-login-telefon');
+            await page.keyboard.type(user.user);
+            await delay(500);
+            await wait_for_loader();
+            await iframe.click('button.btn-login[ng-click="checkPhone()"]');
+            console.log('User entered correctly');
+
+            //LOGIN DATA -> PASSWORD
+            await iframe.waitForSelector('#input-login-password');
+            await iframe.waitForSelector('button.btn-login[ng-click="login()"]');
+            await iframe.focus('#input-login-password');
+            await page.keyboard.type(user.password);
+
+            //WAIT FOR LOADER TO BE HIDDEN
+            await wait_for_loader();
+            await delay(1000);
+            await iframe.click('button.btn-login[ng-click="login()"]');
+            console.log('Password entered correctly');
+
+            //LOGIN SUCCESSFUL
+            await page.waitForNavigation({ 
+                waitUntil: 'networkidle2', 
+                timeout: 45000 
+            });
+            console.log('Login successful...');
+
+            await page.waitForSelector('app-root app-loader');
+            console.log('Waiting for loader to be removed...');
+ 
+            const wait_for_loader_2 = async () => {
+                await new Promise(async (resolve1, reject) => {
+                    try {
+                        await page.evaluate(async () => {
+                            await new Promise(async resolve2 => {
+                                const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
+                                const wait_for_loader = () => {
+                                    return new Promise(async resolve3 => {
+                                        while (!!document.querySelector('app-root app-popup app-loader')) { await delay(20) }
+                                        return resolve3();
+                                    })
+                                }
+                                await wait_for_loader();
+                                return resolve2();
+                            })
+                        });
+                        console.log('Loader removed');
+                        return resolve1();        
+                    } catch(error) { return reject(error) }
+                })
+            }
+            //WAIT FOR LOADER TO BE REMOVED
+            await wait_for_loader_2();
+
+            //CLICK ON PROFILE
+            await page.waitForSelector('.header-element.code-profile > .profile');
+            await delay(500);
+            await page.click('.header-element.code-profile > .profile');
+            console.log('Opening profile');
+
+            //WAIT FOR LOADER TO BE REMOVED
+            await wait_for_loader_2();
+
+            //GO TO MY ACCOUNT
+            await page.waitForSelector('app-profile div.profile');
+            await page.click('app-profile div.profile');
+            await delay(1500);
+            await wait_for_loader_2();
+
+            //EDIT PROFILE
+            console.log('clicking on edit profile');
+            await page.waitForSelector('app-my-account .edit-profile');
+            await page.click('app-my-account .edit-profile');
+            await wait_for_loader_2();
+
+            const profileFrameHandle = await page.waitForSelector('iframe.profile__iframe');
+            const profileIframe = await profileFrameHandle.contentFrame();
+            console.log('iframe loaded');
+
+            await delay(1000);
+            await profileIframe.evaluate(async () => {
+                const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
+                const waitForLoader = () => {
+                    return new Promise(async resolve => {
+                        while (!document.querySelector('.component--preloader--youniverse_new.component--preloader').classList.contains('ng-hide')) { await delay(50) }
+                        return resolve();
+                    })
+                }
+                await waitForLoader();
+            })
+            await profileIframe.waitForSelector('a.btn-profile.btn-delete[ng-click="showDeleteModal()"]');
+            await profileIframe.click('a.btn-profile.btn-delete[ng-click="showDeleteModal()"]');
+            
+            await delay(750);
+            await profileIframe.waitForSelector('.modal-buttons a[ng-click="deleteAccount()"]');
+            await profileIframe.click('.modal-buttons a[ng-click="deleteAccount()"]');
+
+            console.log('Account Deleted');
+            await profileIframe.waitForSelector('a[ng-click="closeAfterDelete()"]');
+            await profileIframe.click('a[ng-click="closeAfterDelete()"]');
+
+            await deactivateExpiredAccount(user.id);
+
+            await delay(1500);
+            console.log(`Finished deleting account for ${user.user}`)
+            
+            return resolve();
+
+        } catch(e) { return reject(e) }
     })
 }
 
@@ -1325,9 +1548,10 @@ const deactivateAccounts = () => {
 
                     for (let i = 0; i < ids.length; i++) {
                         if (parseInt(ids[i]) !== NaN) {
-                            const allowed = await checkAccountToDeactivate(ids[i]);
-                            if (allowed) await deactivateExpiredAccount(ids[i]);
-                            else console.log(`id ${ids[i]} couldn't be deactivated because it was createad more than 7 days ago.`)
+
+                            const user = await getUserFromDb(ids[i]);
+                            await deactivateAccount(user);
+
                         }
                     }
 
