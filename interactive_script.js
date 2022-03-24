@@ -11,7 +11,7 @@ const conn = mysql.createPool({
 const userInput = require('wait-for-user-input');
 const puppeteer = require('puppeteer');
 const puppeteerOptions = { headless: false /*** default is true ***/ /*, args: ['--proxy-server=127.0.0.1:24000']*/ }
-const main_url = "https://youniverse.ro/";
+const main_url = "https://url";
 
 /*************************************** GENERAL FUNCTIONS *************************************/
 const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
