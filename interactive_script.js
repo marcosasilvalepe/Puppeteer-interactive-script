@@ -11,7 +11,7 @@ const conn = mysql.createPool({
 const userInput = require('wait-for-user-input');
 const puppeteer = require('puppeteer');
 const puppeteerOptions = { headless: false /*** default is true ***/ /*, args: ['--proxy-server=127.0.0.1:24000']*/ }
-const main_url = "https://url";
+const main_url = "clients_hidden_url";
 
 /*************************************** GENERAL FUNCTIONS *************************************/
 const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
@@ -26,7 +26,7 @@ const todays_date = () => {
     return year + '-' + month + '-' + day + ' ' + hour;
 }
 
-const updateUserCoins = (user, coins) => {
+const update_user_coins = (user, coins) => {
     return new Promise((resolve, reject) => {
         const now = todays_date();
         conn.query(`
@@ -88,7 +88,7 @@ const surnames = [
     "Juravle","Holban","Bacanu","Tripon","Pascaru","Anghelache","Scutaru","Tanko","Dulgheru","Bala","Borbely","Samson","Ciuta","Airinei","Mandache","Vilceanu","Gorea","Chirca","Culea","Grigoriu","Santa","Oprean","Mitea","Laza","Ghica","Roșca","Baboi","Nacu","Neaga","Gutu","Horga","Bejinariu","Grigorie","Chiran","Juganaru","Vincze","Geana","Balaci","Fulga","Valeanu","Pelin","Pantazi","Minca","Petraru","Ciuraru","Ancuta","Taran","Purcaru","Rădoi","Lazea","Zaharie","Cimpoeru","Neculae","Chindris","Proca","Mitrica","Ciolacu"
 ]
 
-const getNewNumbers = () => {
+const get_new_numbers = () => {
     return new Promise((resolve, reject) => {
         conn.query(`
             SELECT number FROM new_phones;
@@ -100,7 +100,7 @@ const getNewNumbers = () => {
     })
 }
 
-const checkNumberInDB = phone_number => {
+const check_number_in_database = phone_number => {
     return new Promise((resolve, reject) => {
         conn.query(`
             SELECT user FROM users WHERE user=${conn.escape(phone_number)};
@@ -112,7 +112,7 @@ const checkNumberInDB = phone_number => {
     })
 }
 
-const saveCreatedUser = (user, insert) => {
+const save_created_user = (user, insert) => {
     return new Promise((resolve, reject) => {
         const now = todays_date();
         const query = (insert) ? `
@@ -150,7 +150,7 @@ const saveCreatedUser = (user, insert) => {
     })
 }
 
-const checkEmail = email => {
+const check_email = email => {
     return new Promise((resolve, reject) => {
         conn.query(`
             SELECT id FROM users WHERE email='${email}';
@@ -162,7 +162,7 @@ const checkEmail = email => {
     })
 }
 
-const deleteNumberFromDb = phone_number => {
+const delete_number_from_database = phone_number => {
     return new Promise((resolve, reject) => {
         conn.query(`
             DELETE FROM new_phones WHERE number=${conn.escape(phone_number)};
@@ -173,7 +173,7 @@ const deleteNumberFromDb = phone_number => {
     })
 }
 
-const createAccount = phone_number => {
+const create_account = phone_number => {
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -181,7 +181,7 @@ const createAccount = phone_number => {
             let email;
             while (true) {
                 email = (Math.random() + 1).toString(36).substring(4) + '@blfz.eu';
-                if (checkEmail(email)) break;
+                if (check_email(email)) break;
             }
 
             const 
@@ -258,12 +258,6 @@ const createAccount = phone_number => {
             console.log('Terms accepted');
 
             //WAIT FOR LOADER TO BE HIDDEN
-            await wait_for_loader();
-            await iframe.evaluate(() => {
-                if (!!document.querySelector('a.btn-login[href="#/login"]'))
-                    document.querySelector('a.btn-login[href="#/login"]').click();
-            });
-            //await iframe.click('a.btn-login[href="#/login"]');
             await wait_for_loader();
 
             //LOGIN DATA -> USER
@@ -490,11 +484,11 @@ const createAccount = phone_number => {
 
             new_user.code = second_code;
 
-            const insert_into_db = await checkNumberInDB(phone_number);
-            await saveCreatedUser(new_user, insert_into_db);
+            const insert_into_db = await check_number_in_database(phone_number);
+            await save_created_user(new_user, insert_into_db);
             console.log('User data inserted into users table.');
 
-            await deleteNumberFromDb(phone_number);
+            await delete_number_from_database(phone_number);
             console.log(`${phone_number} deleted from new_phones table`);
 
             await page.waitForSelector('app-root app-loader');
@@ -532,7 +526,7 @@ const createAccount = phone_number => {
     })
 }
 
-const logInAfterCreatingAccount = new_user => {
+const login_after_creating_account = new_user => {
     return new Promise(async (resolve, reject) => {
         try {
     
@@ -599,12 +593,6 @@ const logInAfterCreatingAccount = new_user => {
             console.log('Terms accepted');
     
             //WAIT FOR LOADER TO BE HIDDEN
-            await wait_for_loader();
-            await iframe.evaluate(() => {
-                if (!!document.querySelector('a.btn-login[href="#/login"]'))
-                    document.querySelector('a.btn-login[href="#/login"]').click();
-            });
-            //await iframe.click('a.btn-login[href="#/login"]');
             await wait_for_loader();
     
             //LOGIN DATA -> USER
@@ -839,7 +827,7 @@ const logInAfterCreatingAccount = new_user => {
             })();
 
             console.log(`Coin value is: ${coins}`);
-            await updateUserCoins(new_user.user, coins);
+            await update_user_coins(new_user.user, coins);
             console.log('Coin value saved to DB');
 
             console.log(`Finished creating account for user ${new_user.name} ${new_user.surname}\r\n`);
@@ -851,7 +839,7 @@ const logInAfterCreatingAccount = new_user => {
 }
 
 /*************************************** GET COINS FOR EACH USER FUNCTIONS *************************************/
-const getLimitedUsersFromDB = user_amount => {
+const get_limited_users_from_database = user_amount => {
     return new Promise((resolve, reject) => {
         conn.query(`
         SELECT * FROM users WHERE updated=0 ORDER BY id LIMIT ${user_amount};
@@ -862,7 +850,7 @@ const getLimitedUsersFromDB = user_amount => {
     })
 }
 
-const getUnapdatedUsersFromDB = () => {
+const get_unapdated_users_from_database = () => {
     return new Promise((resolve, reject) => {
         conn.query(`
             SELECT * FROM users WHERE updated=0 ORDER BY id;
@@ -873,7 +861,7 @@ const getUnapdatedUsersFromDB = () => {
     })
 }
 
-const getAllUsersFromDB = () => {
+const get_all_users_from_database = () => {
     return new Promise((resolve, reject) => {
         conn.query(`
             SELECT * FROM users ORDER BY id;
@@ -895,7 +883,7 @@ const changeUsersStatus = () => {
     }) 
 }
 
-const loginUsers = users => {
+const login_users = users => {
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -971,12 +959,6 @@ const loginUsers = users => {
     
                 //WAIT FOR LOADER TO BE HIDDEN
                 await wait_for_loader();
-                await iframe.evaluate(() => {
-                    if (!!document.querySelector('a.btn-login[href="#/login"]'))
-                        document.querySelector('a.btn-login[href="#/login"]').click();
-                });
-                //await iframe.click('a.btn-login[href="#/login"]');
-                await wait_for_loader();
 
                 //LOGIN DATA -> USER
                 await iframe.waitForSelector('#input-login-telefon');
@@ -984,7 +966,6 @@ const loginUsers = users => {
                 await iframe.focus('#input-login-telefon');
                 await page.keyboard.type(user.user);
                 await delay(500);
-                await wait_for_loader();
                 await iframe.click('button.btn-login[ng-click="checkPhone()"]');
                 console.log('User entered correctly');
     
@@ -1088,7 +1069,7 @@ const loginUsers = users => {
     
                 console.log(`Coin value is: ${coins}`);
 
-                await updateUserCoins(user.id, coins);
+                await update_user_coins(user.id, coins);
 
                 console.log(`Finished getting coins for user ${user.name}\r\n`);
                 await browser.close();
@@ -1103,12 +1084,12 @@ const loginUsers = users => {
 /*************************************** INTERACTIVE MENU FUNCTIONS *************************************/
 
 //MENU -> OPTION 1 -> UPDATE COINS MENU
-const menuCreateAccount = () => {
+const menucreate_account = () => {
     return new Promise(async (resolve, reject) => {
         try {
             console.clear();
             console.log('Getting number from database');
-            const phone_numbers = await getNewNumbers();
+            const phone_numbers = await get_new_numbers();
 
             while (true) {
 
@@ -1119,8 +1100,8 @@ const menuCreateAccount = () => {
     
                 if (continue_ === 'y') {
                     for (let i = 0; i < phone_numbers.length; i++) {
-                        const new_user = await createAccount(phone_numbers[i].number);
-                        await logInAfterCreatingAccount(new_user);
+                        const new_user = await create_account(phone_numbers[i].number);
+                        await login_after_creating_account(new_user);
                     }
                     console.log('Finished all users succesfully');    
                 }
@@ -1165,7 +1146,7 @@ const menuUpdateCoins = () => {
                     break;
                 }
     
-                else if (option === 6) await exitScript();
+                else if (option === 6) await exit_script();
     
                 else console.log('\r\n\r\nInvalid Option. Try Again.');
 
@@ -1189,11 +1170,11 @@ const menuUpdateCoins_option1 = () => {
 
             console.log(`\r\nUpdating ${users_amount} users.`);
 
-            const users = await getLimitedUsersFromDB(users_amount);
-            await loginUsers(users);
+            const users = await get_limited_users_from_database(users_amount);
+            await login_users(users);
             
             console.log('Users coins updated correctly.');
-            exitScript();
+            exit_script();
 
             return resolve()    
         } catch(e) { return reject(e) }
@@ -1208,11 +1189,11 @@ const menuUpdateCoins_option2 = () => {
             console.clear();
             console.log(`Updating all users that haven't been updated yet.`);
 
-            const users = await getUnapdatedUsersFromDB();
-            await loginUsers(users);
+            const users = await get_unapdated_users_from_database();
+            await login_users(users);
 
             console.log('Users coins updated correctly.');
-            exitScript();
+            exit_script();
 
             return resolve();
         } catch(e) { return reject(e) }
@@ -1227,11 +1208,11 @@ const menuUpdateCoins_option3 = () => {
             console.clear();
             console.log(`Updating ALL USERS.`);
 
-            const users = await getAllUsersFromDB();
-            await loginUsers(users);
+            const users = await get_all_users_from_database();
+            await login_users(users);
 
             console.log('Users coins updated correctly.');
-            exitScript();
+            exit_script();
 
             return resolve();
         } catch(e) { return reject(e) }
@@ -1254,7 +1235,7 @@ const menuUpdateCoins_option4 = () => {
 }
 
 /*************************************** INTERACTIVE MENU FUNCTIONS *************************************/
-const getAccountsCreationDate = () => {
+const get_accounts_creation_date = () => {
     return new Promise((resolve, reject) => {
         conn.query(`
             SELECT id, user, created, coins FROM users WHERE status=1;
@@ -1265,7 +1246,7 @@ const getAccountsCreationDate = () => {
     })
 }
 
-const checkAccountToDeactivate = id => {
+const check_account_to_deactivate = id => {
     return new Promise((resolve, reject) => {
         conn.query(`
             SELECT coins, created FROM users WHERE id=${parseInt(id)};
@@ -1280,24 +1261,7 @@ const checkAccountToDeactivate = id => {
     })
 }
 
-const getUserFromDb = id => {
-    return new Promise((resolve, reject) => {
-        conn.query(`
-            SELECT * FROM users WHERE id=${parseInt(id)};
-        `, (error, results, fields) => {
-            if (error || results.length === 0) return reject(error);
-            return resolve({
-                id: results[0].id,
-                name: results[0].name,
-                surname: results[0].surname,
-                user: results[0].user,
-                password: results[0].password 
-            })
-        })
-    })
-}
-
-const deactivateExpiredAccount = id => {
+const deactivate_expired_account = id => {
     return new Promise((resolve, reject) => {
         conn.query(`
             UPDATE users SET status=0 WHERE id=${parseInt(id)};
@@ -1308,198 +1272,11 @@ const deactivateExpiredAccount = id => {
     })
 }
 
-const deactivateAccount = user => {
+const deactivate_accounts = () => {
     return new Promise(async (resolve, reject) => {
         try {
 
-            const browser = await puppeteer.launch(puppeteerOptions); // default is true
-            const page = await browser.newPage();
-            page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Safari/537.36');
-
-            console.log(`Loading main site for user: `, user);
-            await page.goto(main_url, { waitUntil: 'networkidle0', timeout: 60000 });
-            
-            const frameHandle = await page.waitForSelector('iframe.login__iframe');
-            const iframe = await frameHandle.contentFrame();
-            console.log('iframe loaded');
-
-            //ACCEPT COOKIES
-            await page.waitForSelector('form.form-cookie.ng-untouched div.cta > button:last-child');
-            await page.click('form.form-cookie.ng-untouched div.cta > button:last-child');
-            console.log('Cookies accepted');
-
-            await delay(2500);
-
-            const wait_for_loader = async () => {
-                await new Promise(async (resolve1, reject) => {
-                    try {
-                        await iframe.evaluate(async () => {
-                            await new Promise(async resolve2 => {
-                                const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
-                                const wait_for_loader = () => {
-                                    return new Promise(async resolve3 => {
-                                        const loader = document.querySelector('.component--preloader--youniverse_new.component--preloader');
-                                        while (!loader.classList.contains('ng-hide')) { await delay(20); }
-                                        console.log('finished waiting!!!') 
-                                        return resolve3();
-                                    })
-                                }
-                                await wait_for_loader();
-                                return resolve2();
-                            })
-                        });
-                        return resolve1();
-                    } catch(error) { return reject(error) }
-                })
-            }
-
-            //WAIT FOR LOADER TO BE HIDDEN
-            await iframe.waitForSelector('.component--preloader--youniverse_new.component--preloader');
-            await wait_for_loader();
-
-            //CLICK ON ROMANIA
-            await iframe.waitForSelector(`div.form-login .ctas a.btn-login.btn-auth[ng-click="selectCountry('ro')"]`);
-            await delay(500);
-            await iframe.click(`div.form-login .ctas a.btn-login.btn-auth[ng-click="selectCountry('ro')"]`);
-            console.log('Clicked on Romania');
-
-            //WAIT FOR LOADER TO BE HIDDEN
-            await wait_for_loader();
-            
-            //ACCEPT TERMS
-            await iframe.waitForSelector(`.ng-scope .lg-wrapper.disclaimer-wrapper.ng-scope .submit-container > a.btn-login[href="#/login"]`);
-            await delay(500);
-            await iframe.click(`.ng-scope .lg-wrapper.disclaimer-wrapper.ng-scope .submit-container > a.btn-login[href="#/login"]`);
-            console.log('Terms accepted');
-
-            //WAIT FOR LOADER TO BE HIDDEN
-            await wait_for_loader();
-            await iframe.evaluate(() => {
-                if (!!document.querySelector('a.btn-login[href="#/login"]'))
-                    document.querySelector('a.btn-login[href="#/login"]').click();
-            });
-            //await iframe.click('a.btn-login[href="#/login"]');
-            await wait_for_loader();
-
-            //LOGIN DATA -> USER
-            await iframe.waitForSelector('#input-login-telefon');
-            await iframe.waitForSelector('button.btn-login[ng-click="checkPhone()"]');
-            await iframe.focus('#input-login-telefon');
-            await page.keyboard.type(user.user);
-            await delay(500);
-            await wait_for_loader();
-            await iframe.click('button.btn-login[ng-click="checkPhone()"]');
-            console.log('User entered correctly');
-
-            //LOGIN DATA -> PASSWORD
-            await iframe.waitForSelector('#input-login-password');
-            await iframe.waitForSelector('button.btn-login[ng-click="login()"]');
-            await iframe.focus('#input-login-password');
-            await page.keyboard.type(user.password);
-
-            //WAIT FOR LOADER TO BE HIDDEN
-            await wait_for_loader();
-            await delay(1000);
-            await iframe.click('button.btn-login[ng-click="login()"]');
-            console.log('Password entered correctly');
-
-            //LOGIN SUCCESSFUL
-            await page.waitForNavigation({ 
-                waitUntil: 'networkidle2', 
-                timeout: 45000 
-            });
-            console.log('Login successful...');
-
-            await page.waitForSelector('app-root app-loader');
-            console.log('Waiting for loader to be removed...');
- 
-            const wait_for_loader_2 = async () => {
-                await new Promise(async (resolve1, reject) => {
-                    try {
-                        await page.evaluate(async () => {
-                            await new Promise(async resolve2 => {
-                                const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
-                                const wait_for_loader = () => {
-                                    return new Promise(async resolve3 => {
-                                        while (!!document.querySelector('app-root app-popup app-loader')) { await delay(20) }
-                                        return resolve3();
-                                    })
-                                }
-                                await wait_for_loader();
-                                return resolve2();
-                            })
-                        });
-                        console.log('Loader removed');
-                        return resolve1();        
-                    } catch(error) { return reject(error) }
-                })
-            }
-            //WAIT FOR LOADER TO BE REMOVED
-            await wait_for_loader_2();
-
-            //CLICK ON PROFILE
-            await page.waitForSelector('.header-element.code-profile > .profile');
-            await delay(500);
-            await page.click('.header-element.code-profile > .profile');
-            console.log('Opening profile');
-
-            //WAIT FOR LOADER TO BE REMOVED
-            await wait_for_loader_2();
-
-            //GO TO MY ACCOUNT
-            await page.waitForSelector('app-profile div.profile');
-            await page.click('app-profile div.profile');
-            await delay(1500);
-            await wait_for_loader_2();
-
-            //EDIT PROFILE
-            console.log('clicking on edit profile');
-            await page.waitForSelector('app-my-account .edit-profile');
-            await page.click('app-my-account .edit-profile');
-            await wait_for_loader_2();
-
-            const profileFrameHandle = await page.waitForSelector('iframe.profile__iframe');
-            const profileIframe = await profileFrameHandle.contentFrame();
-            console.log('iframe loaded');
-
-            await delay(1000);
-            await profileIframe.evaluate(async () => {
-                const delay = ms => { return new Promise(resolve => { setTimeout(resolve, ms) }) }
-                const waitForLoader = () => {
-                    return new Promise(async resolve => {
-                        while (!document.querySelector('.component--preloader--youniverse_new.component--preloader').classList.contains('ng-hide')) { await delay(50) }
-                        return resolve();
-                    })
-                }
-                await waitForLoader();
-            })
-            await profileIframe.waitForSelector('a.btn-profile.btn-delete[ng-click="showDeleteModal()"]');
-            await profileIframe.click('a.btn-profile.btn-delete[ng-click="showDeleteModal()"]');
-            
-            await delay(750);
-            await profileIframe.waitForSelector('.modal-buttons a[ng-click="deleteAccount()"]');
-            await profileIframe.click('.modal-buttons a[ng-click="deleteAccount()"]');
-
-            console.log('Account Deleted');
-            await profileIframe.waitForSelector('a[ng-click="closeAfterDelete()"]');
-            await profileIframe.click('a[ng-click="closeAfterDelete()"]');
-
-            await deactivateExpiredAccount(user.id);
-
-            await delay(1500);
-            console.log(`Finished deleting account for ${user.user}`)
-            
-            return resolve();
-
-        } catch(e) { return reject(e) }
-    })
-}
-
-const deactivateAccounts = () => {
-    return new Promise(async (resolve, reject) => {
-        try {
-
-            const active_accounts = await getAccountsCreationDate();
+            const active_accounts = await get_accounts_creation_date();
             const expired_accounts = [];
             
             for (let i = 0; i < active_accounts.length; i++) {
@@ -1529,7 +1306,7 @@ const deactivateAccounts = () => {
 
                 if (option === 1) {
                     for (let i = 0; i < expired_accounts.length; i++) {
-                        await deactivateExpiredAccount(expired_accounts[i].id);
+                        await deactivate_expired_account(expired_accounts[i].id);
                     }
                     console.clear();
                     console.log('Expired accounts were deactivated.');
@@ -1548,10 +1325,9 @@ const deactivateAccounts = () => {
 
                     for (let i = 0; i < ids.length; i++) {
                         if (parseInt(ids[i]) !== NaN) {
-
-                            const user = await getUserFromDb(ids[i]);
-                            await deactivateAccount(user);
-
+                            const allowed = await check_account_to_deactivate(ids[i]);
+                            if (allowed) await deactivate_expired_account(ids[i]);
+                            else console.log(`id ${ids[i]} couldn't be deactivated because it was createad more than 7 days ago.`)
                         }
                     }
 
@@ -1567,7 +1343,7 @@ const deactivateAccounts = () => {
     })
 }
 
-const exitScript = () => { 
+const exit_script = () => { 
     console.log(`Exiting Script. Good Bye.`);
     process.exit();
 }
@@ -1583,13 +1359,13 @@ const exitScript = () => {
         let action = await userInput('Option 1: Create accounts.\r\nOption 2: Update existing accounts.\r\nOption 3: Deactivate expired accounts\r\nOption 4: Exit Script.\r\n\r\n');
         action = parseInt(action.replace(/\D/gm, ''));
     
-        if (action === 1) await menuCreateAccount();
+        if (action === 1) await menucreate_account();
 
         else if (action === 2) await menuUpdateCoins();
 
-        else if (action === 3) await deactivateAccounts();
+        else if (action === 3) await deactivate_accounts();
 
-        else if (action === 4) exitScript();
+        else if (action === 4) exit_script();
 
         else {
             console.clear();
